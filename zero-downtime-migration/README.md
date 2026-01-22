@@ -2,110 +2,88 @@
 
 ## Goal
 
-```
 The project demonstrates how to change a database schema safely in production without taking the system offline or breaking the application.
 
 Many applications face the challenge of evolving their database while real users are still interacting with the system. This project simulates a strategy to add, backfill, and remove columns safely, ensuring continuous operation.
-```
 
 ## Key Concepts
 
 ### 1. Dual-Write / Backward Compatibility
 
-```
-Old columns remain available for the existing API.
+- Old columns remain available for the existing API.
 
-New columns are added without removing old ones, so both old and new APIs can work at the same time.
+- New columns are added without removing old ones, so both old and new APIs can work at the same time.
 
-Example:
+  Example:
+  - Old column: fullName
 
-Old column: fullName
+  - New columns: first_name, last_name
 
-New columns: first_name, last_name
+  > Both old and new columns are written to simultaneously.
 
-Both old and new columns are written to simultaneously.
+### 2. Safe Schema Changes
 
-Safe Schema Changes
+- Use ALTER TABLE … ADD COLUMN IF NOT EXISTS to add new columns without breaking the table.
 
-Use ALTER TABLE … ADD COLUMN IF NOT EXISTS to add new columns without breaking the table.
+- Avoid dropping old columns until all code paths and data backfills are verified.
 
-Avoid dropping old columns until all code paths and data backfills are verified.
-```
+### 3. Backfilling Data
 
-### 2. Backfilling Data
+- After adding new columns, existing data is copied from the old column to the new columns.
 
-```
-After adding new columns, existing data is copied from the old column to the new columns.
+  Example:
+  - fullName → split into first_name and last_name
 
-Example:
+    > Done via a script that updates rows in batches to avoid locking the table.
 
-fullName → split into first_name and last_name
+- Final Cleanup
+  - Once all code and clients are using the new schema:
 
-Done via a script that updates rows in batches to avoid locking the table.
+  - Old columns (e.g., fullName) are dropped safely.
 
-Final Cleanup
+    > This ensures the database stays clean and the new schema is fully adopted.
 
-Once all code and clients are using the new schema:
+### 4. Incremental Deployment
 
-Old columns (e.g., fullName) are dropped safely.
+- Code changes are deployed before the schema is fully switched.
 
-This ensures the database stays clean and the new schema is fully adopted.
-```
+- Allows dual reading/writing, making it possible to roll back safely if something goes wrong.
+  `
 
-### 3. Incremental Deployment
+## Zero-Downtime Migration Steps for a simple name change on a database(PostgreSQL)
 
-```
-Code changes are deployed before the schema is fully switched.
+### 1. Add Columns
 
-Allows dual reading/writing, making it possible to roll back safely if something goes wrong.
-```
+- Add first_name and last_name using ALTER TABLE IF NOT EXISTS.
 
-### 4. Zero-Downtime Migration Steps for a simple name change on a database(postgresql)
+- Table remains available for reading and writing.
 
-1. Add Columns
+### 2. Deploy Dual-Write Code
 
-```
-Add first_name and last_name using ALTER TABLE IF NOT EXISTS.
+- API writes to both old and new columns simultaneously.
 
-Table remains available for reading and writing.
-```
+- Old API continues working for existing clients.
 
-2. Deploy Dual-Write Code
+### 3. Backfill Data
 
-```
-API writes to both old and new columns simultaneously.
+- Script copies existing fullName values into first_name and last_name.
 
-Old API continues working for existing clients.
-```
+- Can be run without downtime.
 
-3. Backfill Data
+### 4. Switch APIs
 
-```
-Script copies existing fullName values into first_name and last_name.
+- Existing clients can migrate to the new API (v2).
 
-Can be run without downtime.
-```
+- Old API can eventually be deprecated.
 
-4. Switch APIs
+### 5. Drop Old Columns
 
-```
-Existing clients can migrate to the new API (v2).
+- Once verified, safely remove fullName.
 
-Old API can eventually be deprecated.
-```
+## Why This Matters
 
-5. Drop Old Columns
+- Avoids service downtime when evolving the database schema.
 
-```
-Once verified, safely remove fullName.
-```
+- Enables incremental deployment and safe migration in production environments.
 
-### Why This Matters
-
-```
-Avoids service downtime when evolving the database schema.
-
-Enables incremental deployment and safe migration in production environments.
-
-Demonstrates best practices used in large-scale production systems.
-```
+- Demonstrates best practices used in large-scale production systems.
