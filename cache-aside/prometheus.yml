@@ -1,0 +1,11 @@
+scrape_configs:
+  # -------------------------------
+  # Define a scrape job for Prometheus
+  # -------------------------------
+  - job_name: "node-app" # Name of this scrape job (used in metrics labels)
+
+    static_configs:
+      - targets:
+          ["localhost:3000"] # List of endpoints to scrape metrics from
+          # Prometheus will periodically request /metrics
+          # on this target to collect data
