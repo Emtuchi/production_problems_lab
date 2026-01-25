@@ -32,7 +32,7 @@ This project implements a cache-aside pattern for product data using multi-layer
 
 - Achieved with a manual lock in Redis.
 
-**Example:**\
+**Example:**
 
 - If 100 users request product id=1 at the same time, only one request fetches from the DB; the rest wait for the cache to be populated.
 
